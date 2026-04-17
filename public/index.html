@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CRUD App</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: sans-serif;
+        background: #f0f2f5;
+        padding: 2rem;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 2rem;
+        color: #333;
+      }
+      .container {
+        max-width: 700px;
+        margin: 0 auto;
+      }
+
+      .form-card,
+      .list-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      h2 {
+        margin-bottom: 1rem;
+        color: #444;
+        font-size: 1.1rem;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        margin-bottom: 0.75rem;
+        font-size: 0.95rem;
+      }
+
+      .btn {
+        padding: 0.55rem 1.2rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+      .btn-primary {
+        background: #4f46e5;
+        color: white;
+      }
+      .btn-primary:hover {
+        background: #4338ca;
+      }
+      .btn-danger {
+        background: #ef4444;
+        color: white;
+      }
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+      .btn-warning {
+        background: #f59e0b;
+        color: white;
+      }
+      .btn-warning:hover {
+        background: #d97706;
+      }
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .item {
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+      }
+      .item h3 {
+        color: #111;
+        margin-bottom: 0.25rem;
+      }
+      .item p {
+        color: #666;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+      .item small {
+        color: #9ca3af;
+        font-size: 0.78rem;
+      }
+      .item-actions {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      #message {
+        padding: 0.6rem 1rem;
+        border-radius: 6px;
+        margin-bottom: 1rem;
+        display: none;
+        font-size: 0.9rem;
+      }
+      .success {
+        background: #d1fae5;
+        color: #065f46;
+        display: block !important;
+      }
+      .error {
+        background: #fee2e2;
+        color: #991b1b;
+        display: block !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>CRUD App</h1>
+
+      <div id="message"></div>
+
+      <div class="form-card">
+        <h2 id="form-title">Crear Item</h2>
+        <input type="hidden" id="item-id" />
+        <input type="text" id="item-name" placeholder="Nombre *" />
+        <textarea
+          id="item-description"
+          placeholder="Descripción"
+          rows="3"
+        ></textarea>
+        <div style="display: flex; gap: 0.5rem">
+          <button class="btn btn-primary" onclick="saveItem()">Guardar</button>
+          <button
+            class="btn btn-secondary"
+            onclick="resetForm()"
+            id="cancel-btn"
+            style="display: none"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <div class="list-card">
+        <h2>Items (<span id="count">0</span>)</h2>
+        <div id="items-list"></div>
+      </div>
+    </div>
+
+    <script>
+      const API = '/api/items'
+
+      async function loadItems() {
+        const res = await fetch(API)
+        const data = await res.json()
+        document.getElementById('count').textContent = data.length
+        const list = document.getElementById('items-list')
+        if (data.length === 0) {
+          list.innerHTML =
+            '<p style="color:#9ca3af;text-align:center;padding:1rem">No hay items aún.</p>'
+          return
+        }
+        list.innerHTML = data
+          .map(
+            (item) => `
+        <div class="item">
+          <h3>${escHtml(item.name)}</h3>
+          <p>${escHtml(item.description || '—')}</p>
+          <small>Creado: ${new Date(item.createdAt).toLocaleString()}${item.updatedAt ? ' · Editado: ' + new Date(item.updatedAt).toLocaleString() : ''}</small>
+          <div class="item-actions">
+            <button class="btn btn-warning" onclick="editItem(${item.id})">Editar</button>
+            <button class="btn btn-danger"  onclick="deleteItem(${item.id})">Eliminar</button>
+          </div>
+        </div>
+      `
+          )
+          .join('')
+      }
+
+      async function saveItem() {
+        const id = document.getElementById('item-id').value
+        const name = document.getElementById('item-name').value.trim()
+        const desc = document.getElementById('item-description').value.trim()
+
+        if (!name) {
+          showMsg('El nombre es requerido', 'error')
+          return
+        }
+
+        const method = id ? 'PUT' : 'POST'
+        const url = id ? `${API}/${id}` : API
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, description: desc })
+        })
+
+        if (res.ok) {
+          showMsg(id ? 'Item actualizado' : 'Item creado', 'success')
+          resetForm()
+          loadItems()
+        } else {
+          const err = await res.json()
+          showMsg(err.error, 'error')
+        }
+      }
+
+      async function editItem(id) {
+        const res = await fetch(`${API}/${id}`)
+        const item = await res.json()
+        document.getElementById('item-id').value = item.id
+        document.getElementById('item-name').value = item.name
+        document.getElementById('item-description').value = item.description
+        document.getElementById('form-title').textContent = 'Editar Item'
+        document.getElementById('cancel-btn').style.display = 'inline-block'
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+
+      async function deleteItem(id) {
+        if (!confirm('¿Eliminar este item?')) return
+        const res = await fetch(`${API}/${id}`, { method: 'DELETE' })
+        if (res.ok) {
+          showMsg('Item eliminado', 'success')
+          loadItems()
+        }
+      }
+
+      function resetForm() {
+        document.getElementById('item-id').value = ''
+        document.getElementById('item-name').value = ''
+        document.getElementById('item-description').value = ''
+        document.getElementById('form-title').textContent = 'Crear Item'
+        document.getElementById('cancel-btn').style.display = 'none'
+      }
+
+      function showMsg(text, type) {
+        const el = document.getElementById('message')
+        el.textContent = text
+        el.className = type
+        setTimeout(() => {
+          el.className = ''
+          el.style.display = 'none'
+        }, 3000)
+      }
+
+      function escHtml(str) {
+        return str
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+      }
+
+      loadItems()
+    </script>
+  </body>
+</html>
