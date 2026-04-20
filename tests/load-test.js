@@ -7,10 +7,16 @@ const itemsDuration = new Trend('items_duration')
 const errorRate = new Rate('error_rate')
 
 export const options = {
+  ext: {
+    loadimpact: {
+      projectID: 7330162,
+      name: 'crud-app load test'
+    }
+  },
   stages: [
-    { duration: '30s', target: 10 }, // rampa: 0 → 10 usuarios
-    { duration: '1m',  target: 10 }, // carga sostenida
-    { duration: '20s', target: 0  }  // bajada
+    { duration: '30s', target: 10 },
+    { duration: '1m',  target: 10 },
+    { duration: '20s', target: 0  }
   ],
   thresholds: {
     http_req_duration: ['p(95)<500'],
