@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  blue:
+    build: .
+    container_name: crud-app-blue
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
+
+  green:
+    build: .
+    container_name: crud-app-green
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    restart: unless-stopped
