@@ -35,7 +35,7 @@ jobs:
         with:
           filename: tests/load-test.js
           flags: --out cloud
+          token: ${{ secrets.K6_CLOUD_TOKEN }}
         env:
           BASE_URL: http://localhost:3000
-          K6_CLOUD_TOKEN: ${{ secrets.K6_CLOUD_TOKEN }}
           K6_CLOUD_PROJECT_ID: ${{ secrets.K6_CLOUD_PROJECT_ID }}
