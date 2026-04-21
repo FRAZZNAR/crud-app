@@ -73,12 +73,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # ── Etapa 4: Deploy al servidor GCP ──────────────────────────────────────
+  # ── Etapa 4: Deploy Blue-Green al servidor GCP ───────────────────────────
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to GCP via SSH
+      - name: Deploy new slot on docker-server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DOCKER_SERVER_HOST }}
@@ -88,12 +88,28 @@ jobs:
           proxy_username: ${{ secrets.SERVER_USER }}
           proxy_key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            if [ $(( ${{ github.run_number }} % 2 )) -eq 1 ]; then
+              NEW=blue; NEW_PORT=3000; OLD=green
+            else
+              NEW=green; NEW_PORT=3001; OLD=blue
+            fi
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker stop crud-app-blue || true
-            docker rm crud-app-blue || true
             docker pull ghcr.io/frazznar/crud-app:main
-            docker run -d \
-              --name crud-app-blue \
-              -p 3000:3000 \
-              --restart always \
-              ghcr.io/frazznar/crud-app:main
+            docker stop crud-app-$OLD || true
+            docker rm crud-app-$OLD || true
+            docker run -d --name crud-app-$NEW -p $NEW_PORT:3000 --restart always ghcr.io/frazznar/crud-app:main
+
+      - name: Switch nginx to new slot
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            if [ $(( ${{ github.run_number }} % 2 )) -eq 1 ]; then
+              NEW_PORT=3000
+            else
+              NEW_PORT=3001
+            fi
+            sudo sed -i "s|proxy_pass http://10\.0\.2\.2:[0-9]*|proxy_pass http://10.0.2.2:$NEW_PORT|g" /etc/nginx/sites-available/crud-app
+            sudo nginx -t && sudo systemctl reload nginx
