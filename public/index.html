@@ -109,6 +109,21 @@
         gap: 0.5rem;
       }
 
+      #slot-badge {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+      .slot-blue { background: #2563eb; }
+      .slot-green { background: #16a34a; }
+
       #message {
         padding: 0.6rem 1rem;
         border-radius: 6px;
@@ -129,6 +144,7 @@
     </style>
   </head>
   <body>
+    <div id="slot-badge">...</div>
     <div class="container">
       <h1>CRUD App</h1>
 
@@ -266,7 +282,16 @@
           .replace(/>/g, '&gt;')
       }
 
+      async function loadSlot() {
+        const res = await fetch('/health')
+        const data = await res.json()
+        const badge = document.getElementById('slot-badge')
+        badge.textContent = data.slot
+        badge.className = `slot-${data.slot}`
+      }
+
       loadItems()
+      loadSlot()
     </script>
   </body>
 </html>

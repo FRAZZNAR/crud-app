@@ -97,7 +97,7 @@ jobs:
             docker pull ghcr.io/frazznar/crud-app:main
             docker stop crud-app-$OLD || true
             docker rm crud-app-$OLD || true
-            docker run -d --name crud-app-$NEW -p $NEW_PORT:3000 --restart always ghcr.io/frazznar/crud-app:main
+            docker run -d --name crud-app-$NEW -p $NEW_PORT:3000 --restart always -e SLOT=$NEW ghcr.io/frazznar/crud-app:main
 
       - name: Switch nginx to new slot
         uses: appleboy/ssh-action@v1.0.3

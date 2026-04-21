@@ -12,7 +12,7 @@ let items = [
 let nextId = 3
 
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK' })
+  res.status(200).json({ status: 'OK', slot: process.env.SLOT || 'blue' })
 })
 
 app.get('/items', (req, res) => {
